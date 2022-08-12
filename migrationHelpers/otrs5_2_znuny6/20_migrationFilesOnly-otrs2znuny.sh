@@ -47,7 +47,7 @@ rm -rf $ZNUNY_PREPARE_DIR/otrs
 mkdir -p $ZNUNY_PREPARE_DIR
 cd $ZNUNY_PREPARE_DIR
 
-wget https://download.znuny.org/releases/znuny-latest-6.0.tar.gz
+wget --no-check-certificate https://download.znuny.org/releases/znuny-latest-6.0.tar.gz
 tar zxf znuny-latest-6.0.tar.gz
 find . -maxdepth 1 -type d -name znuny-6* -exec mv {} ./otrs \;
 echo "prepared clean installation"

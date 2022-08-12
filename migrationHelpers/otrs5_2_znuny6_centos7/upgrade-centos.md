@@ -7,7 +7,9 @@
 # nmcli con show ens33
 # nmcli con mod ipv4.address XXX.XXX.XXX.XXX
 # nmcli con mod ipv4.gateway XXX.XXX.XXX.XXX
-# nmcli con down ens33
+# nmcli con mod enp0s3 ipv4.ignore-auto-dns yes
+# nmcli con mod enp0s3 ipv4.dns 8.8.8.8
+# systemctl restart NetworkManager
 ```
 
 ## 前準備
@@ -22,12 +24,8 @@
   # systemctl disable crond
   # systemctl disable postfix
   # systemctl disable httpd
-
-# systemctl disable crond
-  # systemctl disable postfix
-  # systemctl disable httpd
   ```
-内容の確認
+内容の確認(Active: inactive (dead)であること)
 ```
   # systemctl status crond
   # systemctl status postfix
@@ -38,13 +36,15 @@ cpanmのインストールと環境変数（znunyのPerlライブラリインス
 # cd
 # curl -L -O http://xrl.us/cpanm > cpanm
 # chmod 755 cpanm
-# mv cpanm /usr/local/bin
+# mv cpanm /usr/local/bin/
 # vi /etc/profile
 ```
 
 最終行に下記を追加し保存
 ```
 export PERL5LIB="/usr/local/share/cpanm/lib/perl5/";
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 ```
 
 httpdの環境変数追加
@@ -54,7 +54,7 @@ httpdの環境変数追加
 下記を追加して保存
 ```
 [Service]
-Environment=PERL5LIB=/usr/local/share/cpanm/lib/perl5
+Environment=PERL5LIB=/usr/local/share/cpanm/lib/perl5/
 ```
 サーバのの再起動
 
@@ -67,15 +67,17 @@ Environment=PERL5LIB=/usr/local/share/cpanm/lib/perl5
 otrs5のバックアップ
 ```
 # cd /opt/otrs
+# mkdir /tmp/backup
 # ./scripts/backup.pl -d /tmp/backup
-# sudo yum install -i wget findutils git screen
+# yum install -y wget findutils git screen
 ```
 
 マイグレーションツールのダウンロードおよび実行
 ```
 # cd /opt
-# git clone https://github.com/itgovernanceportal/otrs-znuny-helpers.git
-# cd /opt/otrs-znuny-helpers/migrationHelpers/otrs5_2_znuny6
+# git clone https://github.com/nacayoshi00/otrs-znuny-helpers.git
+# cd /opt/otrs-znuny-helpers/migrationHelpers/otrs5_2_znuny6_centos7
+# chmod 755 *.sh
 # ./10_migrationPrepare-otrs2znuny.sh /opt/otrs /tmp
 ```
 
@@ -91,11 +93,9 @@ Znunyの依存パッケージ、Perlライブラリをインストール
 # cpanm -L /usr/local/share/cpanm/ DateTime Moo Mail::IMAPClient Crypt::Eksblowfish::Bcrypt JSON::XS YAML::XS Template CSS::Minifier::XS JavaScript::Minifier::XS Jq Spreadsheet::XLSX
 ```
 
-Znunyインストール、DBマイグレーション
+Znunyインストール、DBマイグレーション、httpdの設定
 ```
 # ./30_migrationZnuny-otrs2znuny.sh /tmp/otrs /opt/otrs
-# cp /opt/otrs/Kernel/Config.pm.dist /opt/otrs/Kernel/Config.pm
-# /opt/otrs/bin/otrs.SetPermissions.pl
 # cp /opt/otrs/scripts/apache2-httpd.include.conf /etc/httpd/conf.d/zzz_otrs.conf
 # cd /etc/httpd/conf.modules.d/
 # cp -ip 00-mpm.conf 00-mpm.conf.org 
@@ -107,7 +107,17 @@ httpd再起動
 ```
 # systemctl restart httpd
 # systemctl enable httpd
+# systemctl start postfix
+# systemctl enable postfix
+# systemctl enable mysql
 # systemctl list-unit-files -t service | grep enabled
 ```
 
 http://\[IP-addr\]/otrs/index.pl にWebブラウザでログイン。（ユーザパスワードは既存のものを使用可能）
+
+
+# 参考資料
+- https://itgovernanceportal.com/otrs/upgrade-otrs-5-to-znuny-6-ubuntu-20-04/
+- https://www.io-architect.com/wp/archives/4633
+- https://unix.stackexchange.com/questions/582784/apache-environment-variable
+- https://perlzemi.com/blog/20101027127859.html
